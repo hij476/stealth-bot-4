@@ -1,0 +1,51 @@
+name: Run Stealth Bot (WARP VPN)
+
+on:
+  workflow_dispatch: 
+  schedule:
+    - cron: '0 14 * * *' 
+
+jobs:
+  run-automation:
+    runs-on: macos-latest 
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Cloudflare WARP
+        run: |
+          brew install --cask cloudflare-warp
+          warp-cli --version
+
+      - name: Connect Cloudflare WARP
+        run: |
+          # Register and connect the free WARP tunnel
+          warp-cli registration new --accept-tos || true
+          warp-cli connect
+          sleep 5
+          warp-cli status
+          
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: 150
+
+      - name: Install Dependencies
+        run: |
+          pip install undetected-chromedriver selenium selenium-stealth requests fake-useragent
+
+      - name: Run Bot Script
+        run: python stealth_bot.py
+
+      - name: Upload Debug Screenshot
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bot-debug-screenshot
+          path: debug_error_visual_flow.png
